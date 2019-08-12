@@ -1,4 +1,5 @@
 import sqlite3
+from flask import jsonify
 
 class SQL_Manager:
     
@@ -40,6 +41,14 @@ class SQL_Manager:
         return 0
     
     
+    def get_column_names(self, table='citizens'):
+        '''Get column names of given table'''
+        column_names = list(self.cursor.execute(f'''PRAGMA table_info({table})'''))
+        column_names  = [element[1] for element in column_names]
+        
+        return column_names
+    
+    
     def import_data(self, data):
         '''Adding new data to database.'''
         
@@ -55,31 +64,56 @@ class SQL_Manager:
             params = [import_id] + values[:-1] + [str(values[-1])]
             
             self.cursor.executemany(import_query, [params])
+        
+        answer = {'data': {'import_id':import_id}}
+        return jsonify(answer)
     
-    def change_data(self, indexes, new_data):
-        pass
+
+    def replace_data(self, import_id, citizen_id, new_data):
+        '''Replaces data for citizen with indexes to new_data.'''
+        
+        # Set new_data for SQL UPDATE query form
+        new = ', '.join([name + " = '" + str(new_data[name]) + "'" for name in new_data])
+        
+        
+        # Update table
+        update_query = f'''UPDATE citizens SET {new}
+                           WHERE import_id = {import_id}
+                           AND citizen_id = {citizen_id}'''
+        self.cursor.execute(update_query)
+        
+        # Get updated data
+        columns = self.get_column_names()
+        query = f'''SELECT * FROM citizens
+                    WHERE import_id = {import_id}
+                    AND citizen_id = {citizen_id}'''
+        data = list(self.cursor.execute(query).fetchone())
+        
+        
+        # Generating answer
+        answer = {'data': {columns[i]: data[i] for i in range(1, len(columns))}} 
+        return jsonify(answer)
     
     
     def get_data(self, import_id):
         '''Retrieves all the data from database which import_id = given id.'''
         
         # Get column names
-        column_names = list(self.cursor.execute('''PRAGMA table_info(citizens)'''))
-        column_names  = [element[1] for element in column_names]
+        columns = self.get_column_names()
         
         # Get all rows with needed import_id
         query = f'''SELECT * FROM citizens
-                   WHERE import_id = {import_id}'''
+                    WHERE import_id = {import_id}'''
         data = list(self.cursor.execute(query))
         
         # Generating answer
-        answer = {'data':[]}
+        answer = {'data': []}
         for citizen in data:
             # Start collecting values from 1-index because 0-index is import_id
-            values = {column_names[i]:citizen[i] for i in range(1, len(column_names))}
+            values = {columns[i]: citizen[i] for i in range(1, len(columns))}
             answer['data'].append(values)
             
-        return answer
+        return jsonify(answer)
     
     
     def get_birthdays(self, import_id):

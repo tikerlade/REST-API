@@ -1,37 +1,46 @@
 from parser import Parser
+from sql_manager import SQL_Manager
 
 from flask import Flask, request, json, jsonify, abort
 
 
 app = Flask(__name__)
+parser = Parser()
+manager = SQL_Manager()
 
 
 @app.route('/imports', methods=['POST'])
-def data_imports():
+def import_data():
     '''Description'''
-#     import_id = 0
-#     import_id += 1
     data = json.loads(request.data)
+    check = parser.check(data['citizens'])
     
-    parser = Parser()
-    check = parser.check(data)
+    if not check:
+        return abort(400)
     
-    if check:
-        report = (jsonify({'import_id': import_id}), 201)
-    else:
-        report = abort(400)
-        
-    return report
+    output = manager.import_data(data)
+    return output, 201
 
 
 @app.route('/imports/<int:import_id>/citizens/<int:citizen_id>', methods=['POST'])
-def data_replace(import_id, citizen_id):
-    pass
+def replace_data(import_id, citizen_id):
+    '''Description.'''
+    data = json.loads(request.data)
+    check = parser.check(data, action='replace')
+    
+    if not check:
+        return abort(400)
+    
+    output = manager.replace_data(import_id, citizen_id, data)
+    return output, 200
 
 
 @app.route('/imports/<int:import_id>/citizens', methods=['GET'])
 def get_data(import_id):
-    pass
+    '''Returns data with given import_id.'''
+    
+    answer = manager.get_data(import_id)
+    return answer, 200
 
 
 @app.route('/imports/<int:import_id>/birthdays', methods=['GET'])

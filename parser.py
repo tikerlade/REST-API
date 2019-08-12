@@ -6,16 +6,20 @@ class Parser:
         pass
 
     
-    def check(self, data):
+    def check(self, data, action='import'):
         '''Check correctness of data'''
         
-        if 'citizens' not in data:
-            return False
+        if action == 'import':
+            if 'citizens' in data:
+                data = data['citizens']
+            else:
+                return False
+        
         
         # Loop over all citizens
-        for citizen in data['citizens']:
-            # Number of fields must be 9
-            if len(citizen) != 9:
+        for citizen in data:
+            # Number of fields must be 9 if action=import
+            if action == 'import' and len(citizen) != 9:
                 return False
 
             # Loop over all fields
@@ -24,7 +28,7 @@ class Parser:
                 try:
                     check_func = getattr(self, 'check_'+field)
                 except AttributeError:
-                    return field
+                    return False
 
                 # Check field by it's own check-method
                 answer = check_func(citizen[field])
