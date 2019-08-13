@@ -7,7 +7,7 @@ class SQL_Manager:
         self.connection = sqlite3.connect('citizens.db')
         self.cursor = self.connection.cursor()
         
-        create_query = '''CREATE TABLE IF NOT EXISTS citizens
+        main_create_query = '''CREATE TABLE IF NOT EXISTS citizens
                           (import_id INTEGER,
                            citizen_id INTEGER,
                            town TEXT,
@@ -16,10 +16,15 @@ class SQL_Manager:
                            apartment INTEGER,
                            name TEXT,
                            birth_date TEXT,
-                           gender TEXT,
-                           relatives TEXT)'''
+                           gender TEXT)'''
+
+        relatives_create_query = '''CREATE TABLE IF NOT EXISTS relatives
+                              (import_id INTEGER,
+                               citizen_id INTEGER,
+                               relative INTEGER)'''
         
-        self.cursor.execute(create_query)
+        self.cursor.execute(main_create_query)
+        self.cursor.execute(relatives_create_query)
         
     
     def __del__(self):
@@ -47,33 +52,42 @@ class SQL_Manager:
         column_names  = [element[1] for element in column_names]
         
         return column_names
-    
+
     
     def import_data(self, data):
         '''Adding new data to database.'''
         
         import_id = self.get_import_id()
+
+        import_query = '''INSERT INTO citizens
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+
+        relatives_query = '''INSERT INTO relatives
+                             VALUES (?, ?, ?)'''
         
         # Loop over all citizens
         for citizen in data['citizens']:
             # Loop over all fields
             values = list(citizen.values())
-            
-            import_query = '''INSERT INTO citizens
-                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
-            params = [import_id] + values[:-1] + [str(values[-1])]
+            params = [import_id] + values[:-1]
             
             self.cursor.executemany(import_query, [params])
+
+            for value in values[-1]:
+                rel_params = [import_id, values[0], value]
+                self.cursor.executemany(relatives_query, [rel_params])
         
         answer = {'data': {'import_id':import_id}}
-        return jsonify(answer)
+        # return jsonify(answer)
+        return answer
     
 
     def replace_data(self, import_id, citizen_id, new_data):
         '''Replaces data for citizen with indexes to new_data.'''
         
         # Set new_data for SQL UPDATE query form
-        new = ', '.join([name + " = '" + str(new_data[name]) + "'" for name in new_data])
+        new = ', '.join([name + " = '" + str(new_data[name]) + "'"
+                         for name in new_data[:-1]])
         
         
         # Update table
@@ -81,6 +95,7 @@ class SQL_Manager:
                            WHERE import_id = {import_id}
                            AND citizen_id = {citizen_id}'''
         self.cursor.execute(update_query)
+
         
         # Get updated data
         columns = self.get_column_names()
@@ -92,7 +107,8 @@ class SQL_Manager:
         
         # Generating answer
         answer = {'data': {columns[i]: data[i] for i in range(1, len(columns))}} 
-        return jsonify(answer)
+        # return jsonify(answer)
+        return answer
     
     
     def get_data(self, import_id):
@@ -105,15 +121,38 @@ class SQL_Manager:
         query = f'''SELECT * FROM citizens
                     WHERE import_id = {import_id}'''
         data = list(self.cursor.execute(query))
+
         
         # Generating answer
         answer = {'data': []}
         for citizen in data:
             # Start collecting values from 1-index because 0-index is import_id
             values = {columns[i]: citizen[i] for i in range(1, len(columns))}
+
+            # Getting relatives
+            citizen_id = citizen[1]
+
+            rel_query = f'''SELECT citizen_id, relative
+                            FROM relatives
+                            WHERE import_id = {import_id}
+                            AND citizen_id = {citizen_id}
+                            OR relative = {citizen_id}'''
+
+            rel_data = list(self.cursor.execute(rel_query))
+            new_rel_data =[]
+
+            for pair in rel_data:
+                if pair[0] == citizen_id:
+                    new_rel_data.append(pair[1])
+                else:
+                    new_rel_data.append(pair[0])
+
+
+            values['relatives'] = new_rel_data
             answer['data'].append(values)
-            
-        return jsonify(answer)
+
+        # return jsonify(answer)
+        return answer
     
     
     def get_birthdays(self, import_id):
@@ -122,5 +161,3 @@ class SQL_Manager:
     
     def get_percentile_age(self, import_id):
         pass
-    
-    
