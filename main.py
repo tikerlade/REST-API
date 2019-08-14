@@ -16,14 +16,11 @@ def main():
 
 @app.route('/imports', methods=['POST'])
 def import_data():
-    '''Get data in json format,
-     then check it for correctness
-     and then add to database.'''
+    '''Get data in json format, then check it for correctness
+    	and then add to database.'''
 
     data = json.loads(request.data)
-    check = parser.check(data)
-    
-    if not check:
+    if not parser.check(data):
         return abort(400)
     
     output = manager.import_data(data)
@@ -58,7 +55,10 @@ def get_data(import_id):
 
 @app.route('/imports/<int:import_id>/birthdays', methods=['GET'])
 def get_birthdays(import_id):
-    pass
+    '''Returns data about who and how many data will buy in each month.'''
+
+    answer = manager.get_birthdays(import_id)
+    return answer, 200
 
 
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age', methods=['GET'])
