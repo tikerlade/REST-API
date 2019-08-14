@@ -1,4 +1,4 @@
-from parser import Parser
+from my_parser import Parser
 from sql_manager import SQL_Manager
 
 from flask import Flask, request, json, jsonify, abort
@@ -9,11 +9,19 @@ parser = Parser()
 manager = SQL_Manager()
 
 
+@app.route('/')
+def main():
+    return 'OK'
+
+
 @app.route('/imports', methods=['POST'])
 def import_data():
-    '''Description'''
+    '''Get data in json format,
+     then check it for correctness
+     and then add to database.'''
+
     data = json.loads(request.data)
-    check = parser.check(data['citizens'])
+    check = parser.check(data)
     
     if not check:
         return abort(400)
@@ -22,14 +30,19 @@ def import_data():
     return output, 201
 
 
-@app.route('/imports/<int:import_id>/citizens/<int:citizen_id>', methods=['POST'])
+@app.route('/imports/<int:import_id>/citizens/<int:citizen_id>',
+            methods=['POST'])
 def replace_data(import_id, citizen_id):
-    '''Description.'''
+    '''Replace data with new.'''
+    
     data = json.loads(request.data)
-    check = parser.check(data, action='replace')
+    relatives = manager.get_relatives(import_id, citizen_id)
+    check = parser.check(data, 'replace', relatives)
     
     if not check:
         return abort(400)
+    return data
+
     
     output = manager.replace_data(import_id, citizen_id, data)
     return output, 200
@@ -51,3 +64,6 @@ def get_birthdays(import_id):
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age', methods=['GET'])
 def get_percentile_age(import_id):
     pass
+
+if __name__== '__main__':
+    app.run()
