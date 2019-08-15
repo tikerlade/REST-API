@@ -1,7 +1,10 @@
 import sqlite3
-from collections import defaultdict
-from datetime import datetime
+import json
+import numpy as np
 from flask import jsonify
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+from collections import defaultdict
 
 class SQL_Manager:
     
@@ -103,36 +106,28 @@ class SQL_Manager:
                                AND citizen_id = {citizen_id}'''
         self.cursor.execute(rel_delete_query)
 
-        # Insert new relatives data
-        rel_insert_query = '''INSERT INTO relatives
-                              VALUES (?, ?, ?)'''
-        params = [[import_id, citizen_id, value] for value in new_data['relatives']]
-        self.executemany(query, params)
+        if 'relatives' in new_data:
+            # Insert new relatives data
+            rel_insert_query = '''INSERT INTO relatives
+                                  VALUES (?, ?, ?)'''
+            params = [[import_id, citizen_id, value]\
+                         for value in new_data['relatives']]
+            self.cursor.executemany(rel_insert_query, params)
 
         
         # Get updated data
         query = f'''SELECT * FROM citizens
                     WHERE import_id = {import_id}
                     AND citizen_id = {citizen_id}'''
-        data = list(self.cursor.execute(query).fetchone())
-        
+        data = self.cursor.execute(query)
 
-        # Get updated relatives data
-        rel_query = f'''SELECT citizen_id, relative
-                        FROM relatives
-                        WHERE import_id = {import_id}
-                        AND citizen_id = {citizen_id}
-                        OR relative = {citizen_id}'''
-        rel_data = list(self.cursor.execute(rel_query))
+        if data:
+            data = data.fetchone()
 
-        rel_data =[rel_data[i][j] for j in range(2)\
-                    for i in range(len(rel_data))\
-                    if rel_data[i][j] != citizen_id]
-        
-        # Generating answer
-        columns = self.get_columns()
-        answer = {'data': {columns[i]: data[i] for i in range(1, len(columns))}}
-        answer['data']['relatives'] = relatives
+            # Generating answer
+            columns = self.get_columns()
+            answer = {'data': {columns[i]: data[i] for i in range(1, len(columns))}}
+            answer['data']['relatives'] = self.get_relatives_for_output(import_id, citizen_id)
 
         return jsonify(answer)
     
@@ -155,24 +150,30 @@ class SQL_Manager:
             # Start collecting values from 1-index because 0-index is import_id
             values = {columns[i]: citizen[i] for i in range(1, len(columns))}
 
-            # Getting relatives
             citizen_id = citizen[1]
-            rel_query = f'''SELECT citizen_id, relative
-                            FROM relatives
-                            WHERE import_id = {import_id}
-                            AND citizen_id = {citizen_id}
-                            OR relative = {citizen_id}'''
-            rel_data = list(self.cursor.execute(rel_query))
-
-            rel_data =[rel_data[i][j] for j in range(2)\
-                        for i in range(len(rel_data))\
-                        if rel_data[i][j] != citizen_id]
-
-            values['relatives'] = rel_data
+            values['relatives'] = self.get_relatives_for_output(import_id, citizen_id)
             answer['data'].append(values)
 
         return jsonify(answer)
     
+
+    def get_relatives_for_output(self, import_id, citizen_id):
+        # Getting relatives
+        
+        rel_query = f'''SELECT citizen_id, relative
+                        FROM relatives
+                        WHERE import_id = {import_id}
+                        AND citizen_id = {citizen_id}
+                        OR relative = {citizen_id}'''
+        rel_data = list(self.cursor.execute(rel_query))
+
+        rel_data =[rel_data[i][j] for j in range(2)\
+                    for i in range(len(rel_data))\
+                    if rel_data[i][j] != citizen_id]
+
+        return list(set(rel_data))
+
+
 
     def get_relatives(self, import_id, citizen_id):
         '''Returns dict of citizens with relations.'''
@@ -203,17 +204,19 @@ class SQL_Manager:
 
         answer = {month:defaultdict(int) for month in range(1, 13)}
         for pair in relatives:
-            # Retrieve month of takers birthday
-            citizen_id = pair[1]
-            birthday_query = f'''SELECT strftime('%m', birth_date) FROM citizens
-                                WHERE import_id = {import_id}
-                                AND citizen_id = {citizen_id}'''
-            date = self.cursor.execute(birthday_query).fetchone()
+            # If replace pair[0] and pair[1] -> SOLUTION
+            for (giver, taker) in [(pair[0], pair[1]), (pair[1], pair[0])]:
+                # Retrieve month of takers birthday
+                birthday_query = f'''SELECT birth_date FROM citizens
+                                    WHERE import_id = {import_id}
+                                    AND citizen_id = {taker}'''
+                date = self.cursor.execute(birthday_query).fetchone()
 
-            # Increment getters counter for searched month
-            if date:
-                month = int(date[0])
-                answer[month][pair[0]] += 1
+                # Increment getters counter for searched month
+                if date:
+                    date = datetime.strptime(date[0], '%d.%m.%Y')
+                    month = date.month
+                    answer[month][giver] += 1
 
         # Compile the answer, by adding labels
         for month in answer:
@@ -227,4 +230,42 @@ class SQL_Manager:
     
     def get_percentile_age(self, import_id):
         '''Description'''
-        pass
+
+        towns_query = f'''SELECT DISTINCT town FROM citizens
+                          WHERE import_id = {import_id}'''
+        towns = self.cursor.execute(towns_query)
+
+        if towns == None:
+            return []
+
+
+        answer = []
+        towns = [town[0] for town in towns.fetchall()]
+        for town in towns:
+            births_query = f'''SELECT birth_date FROM citizens
+                              WHERE import_id = {import_id}
+                              AND town = {json.dumps(town, ensure_ascii=False)}'''
+            dates = self.cursor.execute(births_query)
+
+            if dates == None:
+                continue
+
+            today = datetime.utcnow().date()
+            dates = [datetime.strptime(date[0], '%d.%m.%Y').date()\
+                         for date in dates.fetchall()]
+
+            years = [relativedelta(today, date).years\
+                         for date in dates]
+
+            if years == None:
+                continue
+
+            percentiles = [round(np.percentile(years, p), 2)\
+                             for p in [50, 75, 99]]
+            town_output = {'town': town,
+                           'p50':percentiles[0],
+                           'p75':percentiles[1],
+                           'p99':percentiles[2]}
+            answer.append(town_output)
+
+        return jsonify({'data': answer})

@@ -2,7 +2,7 @@ from datetime import datetime
 
 class Parser:
     
-    def check(self, data, action='import'):
+    def check(self, data, action='import', relatives = {}):
         '''Check correctness of data'''
         
         # If action = import, then data must have 'citizens' field
@@ -12,12 +12,11 @@ class Parser:
             else:
                 return False
 
-        relatives = {}
         # Loop over all citizens
         for citizen in data:
             # Number of fields must be 9 if action=imports
             if len(citizen) > 9 or (action == 'import' and len(citizen) < 9):
-                return Falses
+                return False
 
             # Loop over all fields
             for field in citizen:
@@ -27,6 +26,7 @@ class Parser:
 
                 # Checking of correct field name
                 try:
+                    print(field)
                     check_func = getattr(self, 'check_'+field)
                 except AttributeError:
                     return False
@@ -34,12 +34,7 @@ class Parser:
                 # Check field by it's own check-method]
                 if not check_func(citizen[field]):
                     return False
-
-                # Rewrite date format
-                if field == 'birth_date':
-                    date = datetime.strptime(citizen[field], '%d.%m.%Y')
-                    citizen[field] = date.strftime('%Y-%m-%d')
-
+            
             if action == 'import':
                 relatives[citizen['citizen_id']] = citizen['relatives']
         return self.check_relatives(relatives)
@@ -90,8 +85,8 @@ class Parser:
     def check_birth_date(self, birth_day):
         '''Check correctness of birth_day field.'''
         try:
-            date = datetime.strptime(birth_day, '%d.%m.%Y')
-            return True
+            date = datetime.strptime(birth_day, '%d.%m.%Y').date()
+            return date < datetime.today().date()
         except ValueError:
             return False
     
@@ -124,8 +119,4 @@ class Parser:
 
         if type(value) != str or value =='null' or value == None:
             return False
-
-        if not any([value[i].isalnum() for i in range(len(value))]):
-            return False
-
-        return True
+        return value.isalnum()
