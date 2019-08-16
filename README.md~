@@ -6,7 +6,6 @@
 `sudo apt-get upadte`</br>
 `sudo apt install git`</br>
 `sudo apt-get install python3-venv`</br>
-`sudo apt-get install python-pip`
 `git clone https://github.com/tikerlade/REST-API.git`
 
 - (Optional) Make sure, that REST-API folder has downloaded</br>
