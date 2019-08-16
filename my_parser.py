@@ -1,13 +1,9 @@
 from datetime import datetime
 
 class Parser:
-
-    def get_checkfuncs(self):
-        basic_dict = {}
     
     def check(self, data, action='import', relatives = {}):
         '''Check correctness of data'''
-        check_functions = default
         
         # If action = import, then data must have 'citizens' field
         if action == 'import':

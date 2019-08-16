@@ -3,7 +3,7 @@
 **Installation**
 
 - First of all run this command:</br>
-`sudo apt-get upadte`</br>
+`sudo apt-get update`</br>
 `sudo apt install git`</br>
 `sudo apt-get install python3-venv`</br>
 `sudo apt-get install python-pip`
