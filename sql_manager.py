@@ -131,7 +131,7 @@ class SQL_Manager:
         query = f'''SELECT * FROM citizens
                     WHERE import_id = {import_id}
                     AND citizen_id = {citizen_id}'''
-        data = self.run_query(query)
+        data = self.cursor.execute(query)
 
         if data:
             data = data.fetchone()
