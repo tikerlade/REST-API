@@ -26,7 +26,6 @@ class Parser:
 
                 # Checking of correct field name
                 try:
-                    print(field)
                     check_func = getattr(self, 'check_'+field)
                 except AttributeError:
                     return False

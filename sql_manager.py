@@ -39,6 +39,11 @@ class SQL_Manager:
         self.connection.commit()
         self.connection.close()
     
+
+    def run_query(self, query):
+        self.cursor.execute(query)
+        self.cursor.commit()
+
     
     def get_import_id(self):
         '''Get the import_id for new session.'''
@@ -98,19 +103,23 @@ class SQL_Manager:
         update_query = f'''UPDATE citizens SET {new}
                            WHERE import_id = {import_id}
                            AND citizen_id = {citizen_id}'''
-        self.cursor.execute(update_query)
+        self.run_query(update_query)
 
         # Update relatives table
         rel_delete_query = f'''DELETE FROM relatives
                                WHERE import_id = {import_id}
-                               AND citizen_id = {citizen_id}'''
-        self.cursor.execute(rel_delete_query)
+                               AND citizen_id = {citizen_id}
+                               OR relative = {citizen_id}'''
+        self.run_query(rel_delete_query)
+
 
         if 'relatives' in new_data:
             # Insert new relatives data
             rel_insert_query = '''INSERT INTO relatives
                                   VALUES (?, ?, ?)'''
             params = [[import_id, citizen_id, value]\
+                         for value in new_data['relatives']]
+            params += [[import_id, value, citizen_id]\
                          for value in new_data['relatives']]
             self.cursor.executemany(rel_insert_query, params)
 
@@ -119,7 +128,7 @@ class SQL_Manager:
         query = f'''SELECT * FROM citizens
                     WHERE import_id = {import_id}
                     AND citizen_id = {citizen_id}'''
-        data = self.cursor.execute(query)
+        data = self.run_query(query)
 
         if data:
             data = data.fetchone()
