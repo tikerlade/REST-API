@@ -42,7 +42,7 @@ class SQL_Manager:
 
     def run_query(self, query):
         self.cursor.execute(query)
-        self.cursor.commit()
+        self.connection.commit()
 
     
     def get_import_id(self):
@@ -80,7 +80,7 @@ class SQL_Manager:
         main_params = [[import_id] + list(citizen.values())[:-1]\
                          for citizen in data]
         self.cursor.executemany(main_import_query, main_params)
-        self.cursor.commit()
+        self.connection.commit()
 
         # Loop over all citizens
         for citizen in data:
@@ -88,7 +88,7 @@ class SQL_Manager:
             values = list(citizen.values())
             rel_params = [[import_id, values[0], value] for value in values[-1]]
             self.cursor.executemany(relatives_query, rel_params)
-            self.cursor.commit()
+            self.connection.commit()
 
         answer = {'data': {'import_id':import_id}}
         return jsonify(answer)
@@ -124,7 +124,7 @@ class SQL_Manager:
             params += [[import_id, value, citizen_id]\
                          for value in new_data['relatives']]
             self.cursor.executemany(rel_insert_query, params)
-            self.cursor.commit()
+            self.connection.commit()
 
         
         # Get updated data

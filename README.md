@@ -3,7 +3,7 @@
 **Installation**
 
 - First of all run this command:</br>
-`sudo apt-get update`</br>
+`sudo apt update`</br>
 `sudo apt install git`</br>
 `sudo apt install python3-venv`</br>
 `sudo apt install python-pip`</br>
@@ -20,7 +20,8 @@
 - Thirdly you need to change directory and install python packages</br>
 `pip install -r requirements.txt`
 
-- Fourthly run server</br>
+- Fourthly cleat port and run server</br>
+`fuser -k -n tcp 8080`</brq>
 `gunicorn -w 4 -b 0.0.0.0:8080 main:app`
 
 **Tests**
