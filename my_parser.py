@@ -6,16 +6,16 @@ class Parser:
     def __init__(self):
         '''Initialize dict (field_name -> 
         function that checks this field. '''
-        self.functions = defaultdict(self.default_check)
+        self.check_funcs = defaultdict(self.default_check)
 
-        self.functions['citizen_id'] = self.check_citizen_id
-        self.functions['town'] = self.check_string_value
-        self.functions['street'] = self.check_string_value
-        self.functions['building'] = self.check_string_value
-        self.functions['apartment'] = self.check_apartment
-        self.functions['name'] = self.check_name
-        self.functions['birth_date'] = self.check_birth_date
-        self.functions['gender'] = self.check_gender
+        self.check_funcs['citizen_id'] = self.check_citizen_id
+        self.check_funcs['town'] = self.check_string_value
+        self.check_funcs['street'] = self.check_string_value
+        self.check_funcs['building'] = self.check_string_value
+        self.check_funcs['apartment'] = self.check_apartment
+        self.check_funcs['name'] = self.check_name
+        self.check_funcs['birth_date'] = self.check_birth_date
+        self.check_funcs['gender'] = self.check_gender
 
         
     def check(self, data, action='import', relatives={}):
