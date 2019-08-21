@@ -4,14 +4,11 @@
 
 - First of all run this command:</br>
 `sudo apt update`</br>
-`xargs -a apt_requirements.txt sudo apt install`</br>
 `git clone https://github.com/tikerlade/REST-API.git`
-
-- (Optional) Make sure, that REST-API folder has downloaded</br>
-`ls -l`
 
 - Secondly you need to activae virtual environment</br>
 `cd REST-API`</br>
+`xargs -a apt_requirements.txt sudo apt install`</br>
 `python3 -m venv venv`</br>
 `. venv/bin/activate`
 

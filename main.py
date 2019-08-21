@@ -53,7 +53,8 @@ def get_data(import_id):
 
 @app.route('/imports/<int:import_id>/birthdays', methods=['GET'])
 def get_birthdays(import_id):
-    '''Returns data about who and how many data will buy in each month.'''
+    '''Returns data about who and how
+         many data will buy in each month.'''
 
     answer = manager.get_birthdays(import_id)
     return answer, 200
