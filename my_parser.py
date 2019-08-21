@@ -1,43 +1,65 @@
 from datetime import datetime
+from collections import defaultdict
 
 class Parser:
-    
-    def check(self, data, action='import', relatives = {}):
-        '''Check correctness of data'''
+
+    def get_check_functions(self):
+        '''Returns dict (field_name -> 
+        function that checks this field. '''
+        functions = defaultdict(self.default_check)
+
+        functions['citizen_id'] = self.check_citizen_id
+        functions['town'] = self.check_string_value
+        functions['street'] = self.check_string_value
+        functions['building'] = self.check_string_value
+        functions['apartment'] = self.check_apartment
+        functions['name'] = self.check_name
+        functions['birth_date'] = self.check_birth_date
+        functions['gender'] = self.check_gender
+
+        return functions
+
         
+    def check(self, data, action='import', relatives={}):
+        '''Check correctness of data'''
+
         # If action = import, then data must have 'citizens' field
         if action == 'import':
             if 'citizens' in data:
                 data = data['citizens']
             else:
                 return False
+        # Otherwise change representation of data
+        else:
+            data = [data]
 
-        # Loop over all citizens
+        # If action = replace then citizen_id field cannot be in data
+        if action == 'replace':
+            if 'citizen_id' in data[0]:
+                return False
+
+
+        # Check all fields for every citizen
+        check_funcs = self.get_check_functions()
         for citizen in data:
             # Number of fields must be 9 if action=imports
             if len(citizen) > 9 or (action == 'import' and len(citizen) < 9):
                 return False
 
-            # Loop over all fields
             for field in citizen:
                 # We'll check relatives field later
                 if field == 'relatives':
                     continue
 
-                # Checking of correct field name
-                try:
-                    check_func = getattr(self, 'check_'+field)
-                except AttributeError:
+                # Check field by it's own check-method]
+                correct = check_funcs[field](citizen[field])
+                if not correct:
                     return False
 
-                # Check field by it's own check-method]
-                if not check_func(citizen[field]):
-                    return False
-            
             if action == 'import':
                 relatives[citizen['citizen_id']] = citizen['relatives']
         return self.check_relatives(relatives)
-    
+
     
     def check_citizen_id(self, citizen_id):
         '''Check correctness of citizen_id field.'''
@@ -45,24 +67,6 @@ class Parser:
         if type(citizen_id) == int:
             return citizen_id >= 0
         return citizen_id
-    
-    
-    def check_town(self, town):
-        '''Check correctness of town field.'''
-
-        return self.check_string_value(town)
-    
-    
-    def check_street(self, street):
-        '''Check correctness of street field.'''
-
-        return self.check_string_value(street)
-
-    
-    def check_building(self, building):
-        '''Check correctness of building field.'''
-
-        return self.check_string_value(building)
     
 
     def check_apartment(self, apartment):
@@ -118,4 +122,8 @@ class Parser:
 
         if type(value) != str or value =='null' or value == None:
             return False
-        return value.isalnum()
+        return value.isalnum() and len(value) <= 256
+
+    def default_check(self):
+        '''Returns false, because field name not known.'''
+        return False

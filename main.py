@@ -34,9 +34,9 @@ def replace_data(import_id, citizen_id):
     
     data = json.loads(request.data)
     relatives = manager.get_relatives(import_id, citizen_id)
-    check = parser.check([data], 'replace', relatives)
-    
-    if not check:
+    check = parser.check(data, 'replace', relatives)
+
+    if (not check) or manager.get_import_id() <= import_id:
         return abort(400)
     
     output = manager.replace_data(import_id, citizen_id, data)
@@ -59,12 +59,14 @@ def get_birthdays(import_id):
     return answer, 200
 
 
-@app.route('/imports/<int:import_id>/towns/stat/percentile/age', methods=['GET'])
+@app.route('/imports/<int:import_id>/towns/stat/percentile/age',
+             methods=['GET'])
 def get_percentile_age(import_id):
     '''Returns percentiles of age for each town.'''
 
     answer = manager.get_percentile_age(import_id)
     return answer, 200
+
 
 if __name__== '__main__':
     app.run(host="0.0.0.0", port=8080)

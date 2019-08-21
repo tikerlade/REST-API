@@ -86,7 +86,8 @@ class SQL_Manager:
         for citizen in data:
             # Add relatives
             values = list(citizen.values())
-            rel_params = [[import_id, values[0], value] for value in values[-1]]
+            rel_params = [[import_id, values[0], value]\
+                             for value in values[-1]]
             self.cursor.executemany(relatives_query, rel_params)
             self.connection.commit()
 
@@ -138,14 +139,17 @@ class SQL_Manager:
 
             # Generating answer
             columns = self.get_columns()
-            answer = {'data': {columns[i]: data[i] for i in range(1, len(columns))}}
-            answer['data']['relatives'] = self.get_relatives_for_output(import_id, citizen_id)
+            answer = {'data': {columns[i]: data[i]\
+                             for i in range(1, len(columns))}}
+            answer['data']['relatives'] =\
+             self.get_relatives_for_output(import_id, citizen_id)
 
         return jsonify(answer)
     
     
     def get_data(self, import_id):
-        '''Retrieves all the data from database which import_id = given id.'''
+        '''Retrieves all the data from database
+             which import_id = given id.'''
         
         # Get column names
         columns = self.get_columns()
@@ -159,11 +163,14 @@ class SQL_Manager:
         # Generating answer
         answer = {'data': []}
         for citizen in data:
-            # Start collecting values from 1-index because 0-index is import_id
-            values = {columns[i]: citizen[i] for i in range(1, len(columns))}
+            # Start collecting values from 1-index
+            # because 0-index is import_id
+            values = {columns[i]: citizen[i]\
+                         for i in range(1, len(columns))}
 
             citizen_id = citizen[1]
-            values['relatives'] = self.get_relatives_for_output(import_id, citizen_id)
+            values['relatives'] =\
+                 self.get_relatives_for_output(import_id, citizen_id)
             answer['data'].append(values)
 
         return jsonify(answer)
@@ -256,7 +263,8 @@ class SQL_Manager:
         for town in towns:
             births_query = f'''SELECT birth_date FROM citizens
                               WHERE import_id = {import_id}
-                              AND town = {json.dumps(town, ensure_ascii=False)}'''
+                              AND town = {json.dumps(town,
+                               ensure_ascii=False)}'''
             dates = self.cursor.execute(births_query)
 
             if dates == None:
@@ -272,7 +280,8 @@ class SQL_Manager:
             if years == None:
                 continue
 
-            percentiles = [round(np.percentile(years, p), 2)\
+            percentiles = [round(np.percentile(years, p,
+                             interpolation='linear'), 2)\
                              for p in [50, 75, 99]]
             town_output = {'town': town,
                            'p50':percentiles[0],

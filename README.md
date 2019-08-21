@@ -4,9 +4,7 @@
 
 - First of all run this command:</br>
 `sudo apt update`</br>
-`sudo apt install git`</br>
-`sudo apt install python3-venv`</br>
-`sudo apt install python-pip`</br>
+`xargs -a apt_requirements.txt sudo apt install`</br>
 `git clone https://github.com/tikerlade/REST-API.git`
 
 - (Optional) Make sure, that REST-API folder has downloaded</br>
@@ -18,10 +16,10 @@
 `. venv/bin/activate`
 
 - Thirdly you need to change directory and install python packages</br>
-`pip install -r requirements.txt`
+`pip install -r pip_requirements.txt`
 
 - Fourthly cleat port and run server</br>
-`fuser -k -n tcp 8080`</brq>
+`fuser -k -n tcp 8080`</br>
 `gunicorn -w 4 -b 0.0.0.0:8080 main:app`
 
 **Tests**
