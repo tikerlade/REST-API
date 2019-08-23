@@ -64,6 +64,18 @@ class SQL_Manager:
         return columns
 
     
+    def get_import_params(self, data):
+        '''If data is shuffled function will order it.'''
+        columns = self.get_columns()
+        data['import_id'] = self.get_import_id()
+        
+        new_data = {}
+        for column in columns:
+            new_data[column] = data[column]
+        
+        return list(new_data.values())
+    
+    
     def import_data(self, data):
         '''Adding new data to database.'''
 
@@ -77,22 +89,23 @@ class SQL_Manager:
                              VALUES (?, ?, ?)'''
 
         # Insert main part of data
-        main_params = [[import_id] + list(citizen.values())[:-1]\
-                         for citizen in data]
+        main_params = [self.get_import_params(citizen) for citizen in data]
         self.cursor.executemany(main_import_query, main_params)
         self.connection.commit()
 
         # Loop over all citizens
         for citizen in data:
             # Add relatives
-            values = list(citizen.values())
-            rel_params = [[import_id, values[0], value]\
-                             for value in values[-1]]
+            citizen_id = citizen['citizen_id']
+            values = citizen['relatives']
+            rel_params = [[import_id, citizen_id, value]\
+                             for value in values]
             self.cursor.executemany(relatives_query, rel_params)
             self.connection.commit()
 
         answer = {'data': {'import_id':import_id}}
         return jsonify(answer)
+
     
 
     def replace_data(self, import_id, citizen_id, new_data):

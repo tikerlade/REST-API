@@ -36,8 +36,11 @@ def replace_data(import_id, citizen_id):
     relatives = manager.get_relatives(import_id, citizen_id)
     check = parser.check(data, 'replace', relatives)
 
-    if (not check) or manager.get_import_id() <= import_id:
+    if not check:
         return abort(400)
+    
+    if manager.get_import_id() <= import_id:
+        return abort(404)
     
     output = manager.replace_data(import_id, citizen_id, data)
     return output, 200
@@ -47,6 +50,9 @@ def replace_data(import_id, citizen_id):
 def get_data(import_id):
     '''Returns data with given import_id.'''
     
+    if manager.get_import_id() <= import_id:
+        return abort(404)
+    
     answer = manager.get_data(import_id)
     return answer, 200
 
@@ -55,6 +61,9 @@ def get_data(import_id):
 def get_birthdays(import_id):
     '''Returns data about who and how
          many data will buy in each month.'''
+    
+    if manager.get_import_id() <= import_id:
+        return abort(404)
 
     answer = manager.get_birthdays(import_id)
     return answer, 200
@@ -65,6 +74,9 @@ def get_birthdays(import_id):
 def get_percentile_age(import_id):
     '''Returns percentiles of age for each town.'''
 
+    if manager.get_import_id() <= import_id:
+        return abort(404)
+    
     answer = manager.get_percentile_age(import_id)
     return answer, 200
 

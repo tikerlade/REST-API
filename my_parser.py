@@ -3,19 +3,21 @@ from collections import defaultdict
 
 class Parser:
 
-    def __init__(self):
-        '''Initialize dict (field_name -> 
+    def get_check_functions(self):
+        '''Returns dict (field_name -> 
         function that checks this field. '''
-        self.check_funcs = defaultdict(self.default_check)
+        functions = defaultdict(self.default_check)
 
-        self.check_funcs['citizen_id'] = self.check_citizen_id
-        self.check_funcs['town'] = self.check_string_value
-        self.check_funcs['street'] = self.check_string_value
-        self.check_funcs['building'] = self.check_string_value
-        self.check_funcs['apartment'] = self.check_apartment
-        self.check_funcs['name'] = self.check_name
-        self.check_funcs['birth_date'] = self.check_birth_date
-        self.check_funcs['gender'] = self.check_gender
+        functions['citizen_id'] = self.check_citizen_id
+        functions['town'] = self.check_string_value
+        functions['street'] = self.check_string_value
+        functions['building'] = self.check_string_value
+        functions['apartment'] = self.check_apartment
+        functions['name'] = self.check_name
+        functions['birth_date'] = self.check_birth_date
+        functions['gender'] = self.check_gender
+
+        return functions
 
         
     def check(self, data, action='import', relatives={}):
@@ -38,6 +40,7 @@ class Parser:
 
 
         # Check all fields for every citizen
+        check_funcs = self.get_check_functions()
         for citizen in data:
             # Number of fields must be 9 if action=imports
             if len(citizen) > 9 or (action == 'import' and len(citizen) < 9):
@@ -49,7 +52,7 @@ class Parser:
                     continue
 
                 # Check field by it's own check-method]
-                correct = self.check_funcs[field](citizen[field])
+                correct = check_funcs[field](citizen[field])
                 if not correct:
                     return False
 
