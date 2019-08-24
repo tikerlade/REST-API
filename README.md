@@ -17,83 +17,96 @@
 
 - Fourthly cleat port and run server</br>
 `fuser -k -n tcp 8080`</br>
-`gunicorn -w 4 -b 0.0.0.0:8080 main:app`</br>
+`gunicorn -w 4 -b 0.0.0.0:8080 main:app`</br></br></br>
 
 
-**Tests**
-All tests were divided into 3 parts.
-1. Check correctness of server when database doesn't exist.
-2. Check correctness of my_parser functionality on broken data.
-3. Check correctness of my_parser on data presentation.
+**Tests information**</br>
 
-The structure of test examples here is:
-`METHOD | url | [(what's wrong, what' testing)] | -> status_code`
+*(Test files can be found in `Tests` folder)*</br>
 
-Test examples:
-- First part (Checking statuses when nothing in database. All data and URLs are correct.)
-	PATCH /imports/10/citizens/4 -> 404
-	GET /imports/30/citizens -> 404
-	GET /imports/8/birthdays -> 404
-	GET /imports/100/towns/stat/percentile/age -> 404
-	POST /imports -> 201
+All tests were divided into 3 parts.</br>
+1. Check correctness of server when database doesn't exist.</br>
+2. Check correctness of my_parser functionality on broken data.</br>
+3. Check correctness of my_parser on data presentation.</br></br></br>
 
-- Second part (Check parser for each field correctness. In each data all except one field are correct. Sometimes data is correct.)
-	*citizen_id*
-POST /imports (same citizen_id in data) -> 400
-POST /imports (citizen_id  = -10) -> 400
-POST /imports (citizen_id  = ‘18’) -> 400
-POST /imports (citizen_id = 0) -> 201
-POST /imports (citizen_id = 120) -> 201
-	*town*
-POST /imports (town = ‘’) -> 400
-POST /imports (town = ‘__’) -> 400
-POST /imports (town = 100) -> 400
-POST /imports (town length = 270) -> 400
-POST /imports (town = ‘Moscow’) -> 201
-POST /imports (town = ‘Москва’) -> 201
-	*street*
-POST /imports (street = ‘’) -> 400
-POST /imports (street = ‘_+’) -> 400
-POST /imports (street = 78) -> 400
-POST /imports (street length = 257) -> 400
-POST /imports (street = ‘Заборная’) -> 201
-	*building*
-POST /imports (building = ‘’) -> 400
-POST /imports (building = ‘+-=’) -> 400
-POST /imports (building = -1) -> 400
-POST /imports (building length = 299) -> 400
-POST /imports (building = ‘39’) -> 201
-	*apartment*
-POST /imports (apartment  = -190) -> 400
-POST /imports (apartment  = ‘128’) -> 400
-POST /imports (apartment  = 128) -> 201
-	*name*
-POST /imports (name = ‘’) -> 400
-POST /imports (name = 119) -> 400
-POST /imports (name length = 299) -> 400
-POST /imports (name = ‘++1’) -> 201
-	*birth_date*
-POST /imports (birth_date = ‘’) -> 400
-POST /imports (birth_date = 119) -> 400
-POST /imports (birth_date = ‘30.02.1901’) -> 400
-POST /imports (birth_date = ‘1986.26.12’) -> 400
-POST /imports (birth_date = ‘20-08-2019’) -> 400
-POST /imports (birth_date = ‘20.12.2019’) -> 400
-POST /imports (birth_date = ‘20.08.2019’) -> 201
-	*gender*
-POST /imports (gender = ‘’) -> 400
-POST /imports (gender = 0) -> 400
-POST /imports (gender = ‘Male’) -> 400
-POST /imports (gender = ‘fefemale’) -> 400
-POST /imports (gender = ‘male’) -> 201
-	*relatives*
-POST /imports (relatives = ‘’) -> 400
-POST /imports (relatives = [1,1,2]) -> 400
-POST /imports (relatives = [1,2]) -> 201
 
-- Third part (Check parser another step)
-POST /imports (two same fields, but one not included) -> 201
-POST /imports ( < 9 fields) -> 400
-POST /imports ( > 9 fields) -> 400
-POST /imports ( > 9 fields, but unique only 9) -> 400
+**Tests structure**</br>
+The structure of test examples here is:</br>
+`METHOD | url | [(what's wrong, what' testing)] | -> status_code`</br></br>
+
+The structure of test files is:</br>
+1. First line contains `url`</br>
+2. Second line contains `status_code`</br>
+3. Third line contains `data` to send</br>
+4. Forhth line contains `data` recieved from server</br></br></br>
+
+
+**Tests examples**</br>
+
+- First part (Checking statuses when nothing in database. All data and URLs are correct.)</br></br>
+PATCH /imports/10/citizens/4 -> 404</br>
+GET /imports/30/citizens -> 404</br>
+GET /imports/8/birthdays -> 404</br>
+GET /imports/100/towns/stat/percentile/age -> 404</br>
+POST /imports -> 201</br></br>
+
+- Second part (Check parser for each field correctness. In each data all except one field are correct. Sometimes data is correct.)</br></br>
+	*citizen_id*</br>
+POST /imports (same citizen_id in data) -> 400</br>
+POST /imports (citizen_id  = -10) -> 400</br>
+POST /imports (citizen_id  = ‘18’) -> 400</br>
+POST /imports (citizen_id = 0) -> 201</br>
+POST /imports (citizen_id = 120) -> 201</br></br>
+	*town*</br>
+POST /imports (town = ‘’) -> 400</br>
+POST /imports (town = ‘__’) -> 400</br>
+POST /imports (town = 100) -> 400</br>
+POST /imports (town length = 270) -> 400</br>
+POST /imports (town = ‘Moscow’) -> 201</br>
+POST /imports (town = ‘Москва’) -> 201</br></br>
+	*street*</br>
+POST /imports (street = ‘’) -> 400</br>
+POST /imports (street = ‘_+’) -> 400</br>
+POST /imports (street = 78) -> 400</br>
+POST /imports (street length = 257) -> 400</br>
+POST /imports (street = ‘Заборная’) -> 201</br></br>
+	*building*</br>
+POST /imports (building = ‘’) -> 400</br>
+POST /imports (building = ‘+-=’) -> 400</br>
+POST /imports (building = -1) -> 400</br>
+POST /imports (building length = 299) -> 400</br>
+POST /imports (building = ‘39’) -> 201</br></br>
+	*apartment*</br>
+POST /imports (apartment  = -190) -> 400</br>
+POST /imports (apartment  = ‘128’) -> 400</br>
+POST /imports (apartment  = 128) -> 201</br></br>
+	*name*</br>
+POST /imports (name = ‘’) -> 400</br>
+POST /imports (name = 119) -> 400</br>
+POST /imports (name length = 299) -> 400</br>
+POST /imports (name = ‘++1’) -> 201</br></br>
+	*birth_date*</br>
+POST /imports (birth_date = ‘’) -> 400</br>
+POST /imports (birth_date = 119) -> 400</br>
+POST /imports (birth_date = ‘30.02.1901’) -> 400</br>
+POST /imports (birth_date = ‘1986.26.12’) -> 400</br>
+POST /imports (birth_date = ‘20-08-2019’) -> 400</br>
+POST /imports (birth_date = ‘20.12.2019’) -> 400</br>
+POST /imports (birth_date = ‘20.08.2019’) -> 201</br>
+	*gender*</br>
+POST /imports (gender = ‘’) -> 400</br>
+POST /imports (gender = 0) -> 400</br>
+POST /imports (gender = ‘Male’) -> 400</br>
+POST /imports (gender = ‘fefemale’) -> 400</br>
+POST /imports (gender = ‘male’) -> 201</br></br>
+	*relatives*</br>
+POST /imports (relatives = ‘’) -> 400</br>
+POST /imports (relatives = [1,1,2]) -> 400</br>
+POST /imports (relatives = [1,2]) -> 201</br></br>
+
+- Third part (Check parser another step)</br></br>
+POST /imports (two same fields, but one not included) -> 201</br>
+POST /imports ( < 9 fields) -> 400</br>
+POST /imports ( > 9 fields) -> 400</br>
+POST /imports ( > 9 fields, but unique only 9) -> 400</br>
 POST /imports (citizens not in data) -> 400
