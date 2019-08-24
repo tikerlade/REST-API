@@ -1,7 +1,7 @@
 from my_parser import Parser
 from sql_manager import SQL_Manager
 
-from flask import Flask, request, json, jsonify, abort
+from flask import Flask, request, json, jsonify, abort, Response
 
 
 app = Flask(__name__)
@@ -16,15 +16,16 @@ def main():
 
 @app.route('/imports', methods=['POST'])
 def import_data():
-    '''Get data in json format, then check it for correctness
+    '''Get data in json format, check its for correctness
     	and then add to database.'''
 
     data = json.loads(request.data)
-    if not parser.check(data):
-        return abort(400)
+    check = parser.check(data)
     
-    output = manager.import_data(data)
-    return output, 201
+    if check != True:
+        return check
+    
+    return manager.import_data(data)
 
 
 @app.route('/imports/<int:import_id>/citizens/<int:citizen_id>',
@@ -36,25 +37,17 @@ def replace_data(import_id, citizen_id):
     relatives = manager.get_relatives(import_id, citizen_id)
     check = parser.check(data, 'replace', relatives)
 
-    if not check:
-        return abort(400)
+    if check != True:
+        return check
     
-    if manager.get_import_id() <= import_id:
-        return abort(404)
-    
-    output = manager.replace_data(import_id, citizen_id, data)
-    return output, 200
+    return manager.replace_data(import_id, citizen_id, data)
 
 
 @app.route('/imports/<int:import_id>/citizens', methods=['GET'])
 def get_data(import_id):
     '''Returns data with given import_id.'''
     
-    if manager.get_import_id() <= import_id:
-        return abort(404)
-    
-    answer = manager.get_data(import_id)
-    return answer, 200
+    return manager.get_data(import_id)
 
 
 @app.route('/imports/<int:import_id>/birthdays', methods=['GET'])
@@ -62,11 +55,7 @@ def get_birthdays(import_id):
     '''Returns data about who and how
          many data will buy in each month.'''
     
-    if manager.get_import_id() <= import_id:
-        return abort(404)
-
-    answer = manager.get_birthdays(import_id)
-    return answer, 200
+    return manager.get_birthdays(import_id)
 
 
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age',
@@ -74,11 +63,7 @@ def get_birthdays(import_id):
 def get_percentile_age(import_id):
     '''Returns percentiles of age for each town.'''
 
-    if manager.get_import_id() <= import_id:
-        return abort(404)
-    
-    answer = manager.get_percentile_age(import_id)
-    return answer, 200
+    return manager.get_percentile_age(import_id)
 
 
 if __name__== '__main__':

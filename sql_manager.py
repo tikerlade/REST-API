@@ -54,6 +54,26 @@ class SQL_Manager:
         
         return import_id + 1 if import_id != None else 0
     
+
+    def check_import_id(self, import_id):
+        '''Extra check for import_id. 
+        If it is bigger then current max -> 404'''
+
+        if import_id >= self.get_import_id():
+            # Building response for fail
+            error_msg = f'No such \'import_id\' = {import_id} in database.'
+            response = jsonify({'message': error_msg})
+            response.status_code = 404
+            return response
+        return True
+
+    def build_good_request(self, data, status_code=200):
+        '''From data make request with good status_code.'''
+
+        response = jsonify({'data': data})
+        response.status_code = status_code
+
+        return response
     
     def get_columns(self, table='citizens'):
         '''Get column names of given table'''
@@ -64,10 +84,9 @@ class SQL_Manager:
         return columns
 
     
-    def get_import_params(self, data):
+    def get_import_params(self, data, columns, import_id):
         '''If data is shuffled function will order it.'''
-        columns = self.get_columns()
-        data['import_id'] = self.get_import_id()
+        data['import_id'] = import_id
         
         new_data = {}
         for column in columns:
@@ -78,7 +97,7 @@ class SQL_Manager:
     
     def import_data(self, data):
         '''Adding new data to database.'''
-
+    
         data = data['citizens']
         import_id = self.get_import_id()
 
@@ -89,10 +108,12 @@ class SQL_Manager:
                              VALUES (?, ?, ?)'''
 
         # Insert main part of data
-        main_params = [self.get_import_params(citizen) for citizen in data]
+        columns = self.get_columns()
+        main_params = [self.get_import_params(citizen, columns, import_id)\
+                       for citizen in data]
         self.cursor.executemany(main_import_query, main_params)
         self.connection.commit()
-
+        
         # Loop over all citizens
         for citizen in data:
             # Add relatives
@@ -101,16 +122,21 @@ class SQL_Manager:
             rel_params = [[import_id, citizen_id, value]\
                              for value in values]
             self.cursor.executemany(relatives_query, rel_params)
-            self.connection.commit()
+        self.connection.commit()
 
-        answer = {'data': {'import_id':import_id}}
-        return jsonify(answer)
+        # Build response
+        return self.build_good_request({'import_id':import_id}, 201)
 
     
 
     def replace_data(self, import_id, citizen_id, new_data):
         '''Replaces data for citizen with indexes to new_data.'''
-        
+
+        # Extra check for import_id
+        check_answer = self.check_import_id(import_id)
+        if check_answer != True:
+            return check_answer
+
         # Set new_data for SQL UPDATE query form
         new = ', '.join([name + " = '" + str(new_data[name]) + "'"
                          for name in new_data if name != 'relatives'])
@@ -147,22 +173,36 @@ class SQL_Manager:
                     AND citizen_id = {citizen_id}'''
         data = self.cursor.execute(query)
 
-        if data:
+        if data and data.fetchone() != None:
             data = data.fetchone()
 
             # Generating answer
             columns = self.get_columns()
-            answer = {'data': {columns[i]: data[i]\
-                             for i in range(1, len(columns))}}
-            answer['data']['relatives'] =\
-             self.get_relatives_for_output(import_id, citizen_id)
+            answer = {columns[i]: data[i] for i in range(1, len(columns))}
+            answer['relatives'] =\
+                    self.get_relatives_for_output(import_id, citizen_id)
+        else:
 
-        return jsonify(answer)
+            error_msg = f'citizen with \'citizen_id\' = ' +\
+                   f'{citizen_id} is not in database.'
+            response = jsonify({'message': error_msg})
+            response.status_code = 404
+            return response
+
+        # Build response for competed query.
+        response = jsonify(answer)
+        response.status_code = 200
+        return response
     
     
     def get_data(self, import_id):
         '''Retrieves all the data from database
              which import_id = given id.'''
+
+        # Extra check for import_id
+        check_answer = self.check_import_id(import_id)
+        if check_answer != True:
+            return check_answer
         
         # Get column names
         columns = self.get_columns()
@@ -174,7 +214,7 @@ class SQL_Manager:
 
         
         # Generating answer
-        answer = {'data': []}
+        answer = []
         for citizen in data:
             # Start collecting values from 1-index
             # because 0-index is import_id
@@ -184,9 +224,9 @@ class SQL_Manager:
             citizen_id = citizen[1]
             values['relatives'] =\
                  self.get_relatives_for_output(import_id, citizen_id)
-            answer['data'].append(values)
+            answer.append(values)
 
-        return jsonify(answer)
+        return self.build_good_request(answer)
     
 
     def get_relatives_for_output(self, import_id, citizen_id):
@@ -224,15 +264,20 @@ class SQL_Manager:
 
         return answer
     
+
     def get_birthdays(self, import_id):
         '''Description.'''
+
+        # Extra check for import_id
+        check_answer = self.check_import_id(import_id)
+        if check_answer != True:
+            return check_answer
 
         # Get all pairs of getter-takers
         rel_query = f'''SELECT citizen_id, relative
                         FROM relatives
                         WHERE import_id={import_id}'''
         relatives = self.cursor.execute(rel_query).fetchall()
-
 
         answer = {month:defaultdict(int) for month in range(1, 13)}
         for pair in relatives:
@@ -256,12 +301,16 @@ class SQL_Manager:
                          for who in answer[month]]
             answer[month] = buyers
 
-        answer = jsonify({'data': answer})
-        return answer
+        return self.build_good_request(answer)
     
     
     def get_percentile_age(self, import_id):
         '''Description'''
+
+        # Extra check for import_id
+        check_answer = self.check_import_id(import_id)
+        if check_answer != True:
+            return check_answer
 
         towns_query = f'''SELECT DISTINCT town FROM citizens
                           WHERE import_id = {import_id}'''
@@ -302,4 +351,4 @@ class SQL_Manager:
                            'p99':percentiles[2]}
             answer.append(town_output)
 
-        return jsonify({'data': answer})
+        return self.build_good_request(answer)
