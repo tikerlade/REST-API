@@ -21,8 +21,9 @@
 
 
 **Tests information**</br>
+IMPORTANT: all tests can be passed only when database is empty. Otherwise some requests to server will produce answers, that correct, when database is not empty. </br></br>
 
-*(Test files can be found in `Tests` folder)*</br>
+*(Test files can be found in `Tests/Test_files` folder)*</br>
 
 All tests were divided into 3 parts.</br>
 1. Check correctness of server when database doesn't exist.</br>
