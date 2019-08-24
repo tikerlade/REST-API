@@ -16,8 +16,13 @@ def main():
 
 @app.route('/imports', methods=['POST'])
 def import_data():
-    '''Get data in json format, check its for correctness
-    	and then add to database.'''
+    '''Retrieves data from request and 'adds it to database.
+
+
+    Returns:
+        import_id & 201-status_code: data was added
+        message & 404/400-status_code: some data broken
+    '''
 
     data = json.loads(request.data)
     check = parser.check(data)
@@ -30,11 +35,22 @@ def import_data():
 
 @app.route('/imports/<int:import_id>/citizens/<int:citizen_id>',
             methods=['POST'])
-def replace_data(import_id, citizen_id):
-    '''Replace data with new.'''
+def update_data(import_id, citizen_id):
+    '''Replace data with updated. Cannot update citizen_id.
+
+
+    Args:
+        import_id (int): id of upload where citizen_id located
+        citizen_id (int): id of citizen, which data to update
+
+
+    Returns:
+        citizen & 200-status_code: data was updated
+        message & 404/400-status_code: some data broken
+    '''
     
     data = json.loads(request.data)
-    relatives = manager.get_relatives(import_id, citizen_id)
+    relatives = manager.get_relatives(import_id)
     check = parser.check(data, 'replace', relatives)
 
     if check != True:
@@ -45,23 +61,53 @@ def replace_data(import_id, citizen_id):
 
 @app.route('/imports/<int:import_id>/citizens', methods=['GET'])
 def get_data(import_id):
-    '''Returns data with given import_id.'''
+    '''Returns data with given import_id.
+
+
+    Args:
+        import_id (int): id of upload, which data to return.
+
+
+    Returns:
+        citizens: all data about citizens in import_id upload'''
     
+
     return manager.get_data(import_id)
 
 
 @app.route('/imports/<int:import_id>/birthdays', methods=['GET'])
 def get_birthdays(import_id):
-    '''Returns data about who and how
-         many data will buy in each month.'''
+    '''Returns data about who and how many
+             presents will buy in each month.
+
+
+    Args:
+        import_id (int): id of upload, which borthdays
+                         relations to return.
+
+
+    Returns:
+        birthdays: who and how many presents will buy in each month
+
+    '''
     
+
     return manager.get_birthdays(import_id)
 
 
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age',
              methods=['GET'])
 def get_percentile_age(import_id):
-    '''Returns percentiles of age for each town.'''
+    '''What is the age of percentiles: [50, 75, 99] for each town.
+
+
+    Args:
+        import_id (int): which upload to use for percentiles counting
+
+
+    Returns:
+        percentile_info: for evry town info about
+                         [50, 75, 99] percentiles'''
 
     return manager.get_percentile_age(import_id)
 

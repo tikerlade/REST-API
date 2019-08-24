@@ -5,8 +5,13 @@ from flask import jsonify
 class Parser:
 
     def get_check_functions(self):
-        '''Returns dict (field_name -> 
-        function that checks this field. '''
+        '''Getting check-function for each field of database.
+
+
+        Returns:
+            functions (dict): field -> function dictionary
+        '''
+
         functions = defaultdict(self.default_check)
 
         functions['citizen_id'] = self.check_citizen_id
@@ -20,13 +25,38 @@ class Parser:
 
         return functions
 
-    def bad_request(self, message, code = 400):
+
+    def bad_request(self, message, code=400):
+        '''Building bad_request response.
+
+        Args:
+            message (str): what to put in json description
+            code (int): what code set to response
+
+
+        Returns:
+            response: complete response from server
+                     with description and status_code'''
+
         response = jsonify({'message': message})
         response.status_code = code
         return response
-        
+
+
     def check(self, data, action='import', relatives={}):
-        '''Check correctness of data'''
+        '''Check correctness of data.
+
+
+        Args:
+            data (dict): what to check for correctness
+            action (str): for what action we check data (import/replace)
+            relatives (dict): relatives relations from data
+
+
+        Returns:
+            True: if all the data are correct
+            response: message & bad-status_code if some errors in data
+        '''
 
         # If action = import, then data must have 'citizens' field
         if action == 'import':
@@ -65,7 +95,7 @@ class Parser:
                         return self.bad_request('\'relatives\' field must be list.')
                     continue
 
-                # Check field by it's own check-method]
+                # Check field by it's own check-method
                 check = check_funcs[field](citizen[field])
                 if check != True:
                     return self.bad_request(check)
@@ -77,36 +107,81 @@ class Parser:
         return True if check_relatives == True else\
                      self.bad_request(check_relatives)
 
-    
+
     def check_citizen_id(self, citizen_id):
-        '''Check correctness of citizen_id field.'''
+        '''Check correctness of citizen_id field.
+
+        Args:
+            citizen_id (int): id of citizen
+
+
+        Returns:
+            True: citizen_id is correct
+            error_msg: citizen_id is not correct
+        '''
+
+
         error_msg = f'\'citizen_id\' = \'{citizen_id}\' field not correct.'
         
         if type(citizen_id) == int:
             return True if citizen_id >= 0 else error_msg
         return error_msg
-    
+
 
     def check_apartment(self, apartment):
-        '''Check correctness of apartment field.'''
+        '''Check correctness of apartment field.
+
+
+        Args:
+            apartment (int): citizen's apartment
+
+
+        Returns:
+            True: apartment is correct
+            error_msg: apartment is not correct
+        '''
+
         error_msg = f'\'apartment\' = \'{apartment}\' field not correct.'
         
         if type(apartment) == int:
             return True if apartment >= 0 else error_msg
         return error_msg
-    
-    
+
+
     def check_name(self, name):
-        '''Check correctness of name field.'''
+        '''Check correctness of name field.
+
+
+        Args:
+            name (str): citizen's name
+
+
+        Returns:
+            True: name is correct
+            error_msg: name is not correct
+        '''
+
+
         error_msg = f'\'name\' = {name} field not correct.'
         
         if type(name) == str:
             return True if 257 > len(name) > 0 else error_msg
         return error_msg
-    
-    
+
+
     def check_birth_date(self, birth_date):
-        '''Check correctness of birth_date field.'''
+        '''Check correctness of birth_date field. Format: dd.mm.yyyy
+
+
+        Args:
+            birth_date (str): citizen's birthday
+
+
+        Returns:
+            True: birth_date is correct
+            error_msg: birth_date is not correct
+        '''
+
         error_msg = f'\'birth_date\' = \'{birth_date}\' field not correct.'
 
         try:
@@ -114,17 +189,37 @@ class Parser:
             return True if date < datetime.today().date() else error_msg
         except:
             return error_msg
-    
-    
+
+
     def check_gender(self, gender):
-        '''Check correctness of gender field.'''
+        '''Check correctness of gender field. male or female accepts.
+
+
+        Args:
+            gender (str): citizen's gender
+
+
+        Returns:
+            True: gender is correct
+            error_msg: gender is not correct
+        '''
         error_msg = f'\'gender\' = \'{gender}\' field not correct.'
         
         return True if (gender == 'male' or gender == 'female') else error_msg
-    
-    
+
+
     def check_relatives(self, relatives):
-        '''Check correctness of relatives in data.'''
+        '''Check correctness of relatives in hole data.
+
+
+        Args:
+            relatives (dict): relations between citizens
+
+
+        Returns:
+            True: relations are correct
+            error_msg: relations are not correct
+        '''
         error_msg = 'Some \'relatives\' field of your citizens is not correct.'
 
         for citizen in relatives:
@@ -142,7 +237,17 @@ class Parser:
 
 
     def check_string_value(self, value):
-        '''Check correctness of town/street/building field.'''
+        '''Check correctness of town/street/building field.
+
+
+        Args:
+            value (str): citizen's town/street/building
+
+
+        Returns:
+            True: field is correct
+            error_msg: field is not correct
+        '''
         error_msg = f'\'string_value\' = \'{value}\' field not correct.'
 
         if type(value) != str or value =='null' or value == None:
@@ -150,8 +255,13 @@ class Parser:
         return True if any(c.isalnum() for c in value)\
                  and len(value) <= 256 else error_msg
 
+
     def default_check(self):
-        '''Returns false, because field name not known.'''
+        '''Stub check-function for fields, that are not supported.
+
+
+        Returns:
+            error_msg: field not supported'''
         error_msg = 'You have some fields that are not supported.'
 
-        return error_msg
+        return error_ms

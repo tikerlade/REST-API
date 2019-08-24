@@ -21,7 +21,6 @@
 
 
 **Tests information**</br>
-IMPORTANT: all tests can be passed only when database is empty. Otherwise some requests to server will produce answers, that correct, when database is not empty. </br></br>
 
 *(Test files can be found in `Tests/Test_files` folder)*</br>
 
@@ -30,10 +29,14 @@ All tests were divided into 3 parts.</br>
 2. Check correctness of my_parser functionality on broken data.</br>
 3. Check correctness of my_parser on data presentation.</br></br></br>
 
+**Running tests**</br>
+
+1. Run your server on 0.0.0.0:8080
+2. Change directory with `cd Tests` and run python script `python3 tester.py`
+3. You will see message `All tests have been passed !`
+
 
 **Tests structure**</br>
-The structure of test examples here is:</br>
-`METHOD | url | [(what's wrong, what' testing)] | -> status_code`</br></br>
 
 The structure of test files is:</br>
 1. First line contains `url`</br>
@@ -43,6 +46,9 @@ The structure of test files is:</br>
 
 
 **Tests examples**</br>
+
+The structure of test examples here is:</br>
+`METHOD | url | [(what's wrong, what' testing)] | -> status_code`</br></br>
 
 - First part (Checking statuses when nothing in database. All data and URLs are correct.)</br></br>
 PATCH /imports/10/citizens/4 -> 404</br>
@@ -110,4 +116,5 @@ POST /imports (two same fields, but one not included) -> 201</br>
 POST /imports ( < 9 fields) -> 400</br>
 POST /imports ( > 9 fields) -> 400</br>
 POST /imports ( > 9 fields, but unique only 9) -> 400</br>
-POST /imports (citizens not in data) -> 400
+POST /imports (citizens not in data) -> 400</br>
+PATCH /import/0/citizens/5 (try to change citizen_id) -> 400

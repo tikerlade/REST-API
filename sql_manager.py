@@ -1,5 +1,5 @@
-import sqlite3
 import json
+import sqlite3
 import numpy as np
 from flask import jsonify
 from datetime import datetime
@@ -9,6 +9,8 @@ from collections import defaultdict
 class SQL_Manager:
     
     def __init__(self):
+        '''Initialize sql_manager instance. Connecting to database.'''
+
         self.connection = sqlite3.connect('citizens.db', check_same_thread=False)
         self.cursor = self.connection.cursor()
         
@@ -41,12 +43,18 @@ class SQL_Manager:
     
 
     def run_query(self, query):
+        '''Run the given query and after it commit.'''
+
         self.cursor.execute(query)
         self.connection.commit()
 
     
     def get_import_id(self):
-        '''Get the import_id for new session.'''
+        '''Get the import_id for new session.
+
+
+        Returns:
+            import_id: id for new upload'''
         
         get_query = '''SELECT MAX(import_id)
                        FROM citizens'''
@@ -56,8 +64,18 @@ class SQL_Manager:
     
 
     def check_import_id(self, import_id):
-        '''Extra check for import_id. 
-        If it is bigger then current max -> 404'''
+        '''Extra check for import_id.
+
+
+        Args:
+            import_id (int): from url
+
+
+        Returns:
+            True: import_id is in the database
+            response: message & 404-status_code, given import_id
+                        is not in database
+        '''
 
         if import_id >= self.get_import_id():
             # Building response for fail
@@ -67,16 +85,35 @@ class SQL_Manager:
             return response
         return True
 
+
     def build_good_request(self, data, status_code=200):
-        '''From data make request with good status_code.'''
+        '''From data make request with good status_code.
+
+        Args:
+            data: data for json response
+            status_code (int): status_code for response
+
+
+        Returns:
+            response: complete response from server
+        '''
 
         response = jsonify({'data': data})
         response.status_code = status_code
 
         return response
     
+
     def get_columns(self, table='citizens'):
-        '''Get column names of given table'''
+        '''Get column names of given table.
+
+
+        Args:
+            table (str): table, which columns to return
+
+        Returns:
+            columns: column_names of table
+        '''
         
         columns = list(self.cursor.execute(f'''PRAGMA table_info({table})'''))
         columns  = [element[1] for element in columns]
@@ -84,8 +121,19 @@ class SQL_Manager:
         return columns
 
     
-    def get_import_params(self, data, columns, import_id):
-        '''If data is shuffled function will order it.'''
+    def order_import_params(self, data, columns, import_id):
+        '''If data is shuffled function will order it.
+
+        
+        Args:
+            data: shuffled data to input
+            columns: columns names
+            import_id (int): id of upload
+
+
+        Returns:
+            new_data: list of values in right order
+        '''
         data['import_id'] = import_id
         
         new_data = {}
@@ -96,7 +144,15 @@ class SQL_Manager:
     
     
     def import_data(self, data):
-        '''Adding new data to database.'''
+        '''Imports new data to database.
+
+        Args:
+            data: data to import
+
+
+        Returns:
+            response: complete response to answer query
+        '''
     
         data = data['citizens']
         import_id = self.get_import_id()
@@ -109,7 +165,7 @@ class SQL_Manager:
 
         # Insert main part of data
         columns = self.get_columns()
-        main_params = [self.get_import_params(citizen, columns, import_id)\
+        main_params = [self.order_import_params(citizen, columns, import_id)\
                        for citizen in data]
         self.cursor.executemany(main_import_query, main_params)
         self.connection.commit()
@@ -128,9 +184,21 @@ class SQL_Manager:
         return self.build_good_request({'import_id':import_id}, 201)
 
     
-
     def replace_data(self, import_id, citizen_id, new_data):
-        '''Replaces data for citizen with indexes to new_data.'''
+        '''Replaces data for citizen with citizen_id
+             from import_id upload to new_data.
+
+
+        Args:
+            import_id (int): id of upload, where to seek citizen
+            citizen_id (int): id of citizen
+            new_data (dict): data, which to replace
+
+
+        Returns:
+            response: complete response with 
+                    updated info about citizen
+        '''
 
         # Extra check for import_id
         check_answer = self.check_import_id(import_id)
@@ -173,14 +241,14 @@ class SQL_Manager:
                     AND citizen_id = {citizen_id}'''
         data = self.cursor.execute(query)
 
-        if data and data.fetchone() != None:
+        if data != None:
             data = data.fetchone()
 
             # Generating answer
             columns = self.get_columns()
             answer = {columns[i]: data[i] for i in range(1, len(columns))}
             answer['relatives'] =\
-                    self.get_relatives_for_output(import_id, citizen_id)
+                    self.get_relatives_for_citizen(import_id, citizen_id)
         else:
 
             error_msg = f'citizen with \'citizen_id\' = ' +\
@@ -197,7 +265,16 @@ class SQL_Manager:
     
     def get_data(self, import_id):
         '''Retrieves all the data from database
-             which import_id = given id.'''
+             which import_id = given id.
+
+        Args:
+            import_id (int): id of upload to return
+
+
+        Returns:
+            response: complete response with info
+                     about all citizens from given upload
+        '''
 
         # Extra check for import_id
         check_answer = self.check_import_id(import_id)
@@ -218,19 +295,29 @@ class SQL_Manager:
         for citizen in data:
             # Start collecting values from 1-index
             # because 0-index is import_id
-            values = {columns[i]: citizen[i]\
-                         for i in range(1, len(columns))}
+            values = {columns[i]: citizen[i] for i in range(1, len(columns))}
 
             citizen_id = citizen[1]
             values['relatives'] =\
-                 self.get_relatives_for_output(import_id, citizen_id)
+                 self.get_relatives_for_citizen(import_id, citizen_id)
             answer.append(values)
 
         return self.build_good_request(answer)
     
 
-    def get_relatives_for_output(self, import_id, citizen_id):
-        # Getting relatives
+    def get_relatives_for_citizen(self, import_id, citizen_id):
+        '''Returns relatives  to given citizen.
+
+
+        Args:
+            import_id (int): id, which upload to use
+            citizen_id (int): id of citizen, 
+                                whose relatives to prepare
+
+
+        Returns:
+            relatives: list of relatives to given person
+        '''
         
         rel_query = f'''SELECT citizen_id, relative
                         FROM relatives
@@ -239,6 +326,7 @@ class SQL_Manager:
                         OR relative = {citizen_id}'''
         rel_data = list(self.cursor.execute(rel_query))
 
+        # Relatives are two-sided
         rel_data =[rel_data[i][j] for j in range(2)\
                     for i in range(len(rel_data))\
                     if rel_data[i][j] != citizen_id]
@@ -246,9 +334,16 @@ class SQL_Manager:
         return list(set(rel_data))
 
 
+    def get_relatives(self, import_id):
+        '''Returns dict of citizens with relations.
 
-    def get_relatives(self, import_id, citizen_id):
-        '''Returns dict of citizens with relations.'''
+
+        Args:
+            import_id (int): id of upload
+
+
+        Returns:
+            relatives: dict citizen -> relatives'''
 
         rel_query = f'''SELECT citizen_id, relative
                         FROM relatives
@@ -266,7 +361,16 @@ class SQL_Manager:
     
 
     def get_birthdays(self, import_id):
-        '''Description.'''
+        '''For given upload returns for each month of the year
+             who and how many presents will buy.
+
+        
+        Args:
+            import_id: id of upload
+
+
+        Returns:
+            response: complete response with info per months'''
 
         # Extra check for import_id
         check_answer = self.check_import_id(import_id)
@@ -305,7 +409,16 @@ class SQL_Manager:
     
     
     def get_percentile_age(self, import_id):
-        '''Description'''
+        '''Gives age percentiles [50, 75, 99] for each town.
+
+
+        Args:
+            import_id (int): id of upload
+
+
+        Returns:
+            response: complete response with information
+                         town -> percentiles'''
 
         # Extra check for import_id
         check_answer = self.check_import_id(import_id)
@@ -316,11 +429,11 @@ class SQL_Manager:
                           WHERE import_id = {import_id}'''
         towns = self.cursor.execute(towns_query)
 
-        if towns == None:
-            return []
-
 
         answer = []
+        today = datetime.utcnow().date()
+
+        # Compute percentiles for each town
         towns = [town[0] for town in towns.fetchall()]
         for town in towns:
             births_query = f'''SELECT birth_date FROM citizens
@@ -329,22 +442,19 @@ class SQL_Manager:
                                ensure_ascii=False)}'''
             dates = self.cursor.execute(births_query)
 
-            if dates == None:
-                continue
-
-            today = datetime.utcnow().date()
+            # Format date
             dates = [datetime.strptime(date[0], '%d.%m.%Y').date()\
                          for date in dates.fetchall()]
 
-            years = [relativedelta(today, date).years\
+            # Compute ages
+            ages = [relativedelta(today, date).years\
                          for date in dates]
 
-            if years == None:
-                continue
 
-            percentiles = [round(np.percentile(years, p,
+            percentiles = [round(np.percentile(ages, p,
                              interpolation='linear'), 2)\
                              for p in [50, 75, 99]]
+
             town_output = {'town': town,
                            'p50':percentiles[0],
                            'p75':percentiles[1],
