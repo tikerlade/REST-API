@@ -1,4 +1,4 @@
-from flask import Flask, request, json
+from flask import Flask, json, request
 
 from my_parser import Parser
 from sql_manager import SQL_Manager
@@ -18,10 +18,9 @@ def main():
 def import_data():
     '''Retrieves data from request and adds it to the database.
 
-
     Returns:
-        import_id & 201-status_code: data was added
-        message & 404/400-status_code: some data broken
+        import_id & 201-status_code: data was imported
+        message & 404/400-status_code: import failed
     '''
 
     data = json.loads(request.data)
@@ -36,17 +35,15 @@ def import_data():
 @app.route('/imports/<int:import_id>/citizens/<int:citizen_id>',
            methods=['POST'])
 def update_data(import_id, citizen_id):
-    '''Replace data with updated. Cannot update citizen_id.
-
+    '''Update data for a given `citizen_id`.
 
     Args:
-        import_id (int): id of upload where citizen_id located
-        citizen_id (int): id of citizen which data to update
-
+        import_id (int): id of an import where citizen_id is located
+        citizen_id (int): id of a citizen whose data to update
 
     Returns:
         citizen & 200-status_code: data was updated
-        message & 404/400-status_code: some data broken
+        message & 404/400-status_code: update failed
     '''
 
     data = json.loads(request.data)
@@ -61,33 +58,27 @@ def update_data(import_id, citizen_id):
 
 @app.route('/imports/<int:import_id>/citizens', methods=['GET'])
 def get_data(import_id):
-    '''Returns data with given import_id.
-
+    '''Returns data for a given `import_id`.
 
     Args:
-        import_id (int): id of upload which data to return.
-
+        import_id (int): id of a requested import
 
     Returns:
-        citizens: all data about citizens in import_id upload'''
+        citizens: all data about citizens in import `import_id`
+    '''
 
     return manager.get_data(import_id)
 
 
 @app.route('/imports/<int:import_id>/birthdays', methods=['GET'])
 def get_birthdays(import_id):
-    '''Returns data about who and how many
-             presents will buy in each month.
-
+    '''Returns data about who and how many presents will buy in each month.
 
     Args:
-        import_id (int): id of upload which birthdays
-                         relations to return.
-
+        import_id (int): id of an import which birthday relations to return
 
     Returns:
         birthdays: who and how many presents will buy in each month
-
     '''
 
     return manager.get_birthdays(import_id)
@@ -96,16 +87,14 @@ def get_birthdays(import_id):
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age',
            methods=['GET'])
 def get_percentile_age(import_id):
-    '''What is the age of percentiles: [50, 75, 99] for each town.
-
+    '''Age percentiles (50, 75, 99) for each town.
 
     Args:
-        import_id (int): which upload to use for percentiles counting
-
+        import_id (int): import to use for percentiles counting
 
     Returns:
-        percentile_info: for every town info abosut
-                         [50, 75, 99] percentiles'''
+        percentile_info: age percentile info for every town
+    '''
 
     return manager.get_percentile_age(import_id)
 
