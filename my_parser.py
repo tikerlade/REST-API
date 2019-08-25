@@ -77,9 +77,8 @@ class Parser:
 
         # Check all fields for every citizen
         for citizen in data:
-            # Number of fields must be 9 if action=imports
-            if len(citizen) > 9 or (action == 'import' and
-                                    len(set(citizen)) < 9):
+            # Number of fields must be 9 if action=import
+            if action == 'import' and len(set(citizen)) != 9:
                 return self.process_bad_request(
                         'Number of fields not match ' +
                         'the allowed number of fields')
