@@ -1,7 +1,7 @@
+from flask import Flask, request, json
+
 from my_parser import Parser
 from sql_manager import SQL_Manager
-
-from flask import Flask, request, json, jsonify, abort, Response
 
 
 app = Flask(__name__)
@@ -16,7 +16,7 @@ def main():
 
 @app.route('/imports', methods=['POST'])
 def import_data():
-    '''Retrieves data from request and 'adds it to database.
+    '''Retrieves data from request and adds it to the database.
 
 
     Returns:
@@ -26,36 +26,36 @@ def import_data():
 
     data = json.loads(request.data)
     check = parser.check(data)
-    
-    if check != True:
+
+    if check is not True:
         return check
-    
+
     return manager.import_data(data)
 
 
 @app.route('/imports/<int:import_id>/citizens/<int:citizen_id>',
-            methods=['POST'])
+           methods=['POST'])
 def update_data(import_id, citizen_id):
     '''Replace data with updated. Cannot update citizen_id.
 
 
     Args:
         import_id (int): id of upload where citizen_id located
-        citizen_id (int): id of citizen, which data to update
+        citizen_id (int): id of citizen which data to update
 
 
     Returns:
         citizen & 200-status_code: data was updated
         message & 404/400-status_code: some data broken
     '''
-    
+
     data = json.loads(request.data)
     relatives = manager.get_relatives(import_id)
     check = parser.check(data, 'replace', relatives)
 
-    if check != True:
+    if check is not True:
         return check
-    
+
     return manager.replace_data(import_id, citizen_id, data)
 
 
@@ -65,12 +65,11 @@ def get_data(import_id):
 
 
     Args:
-        import_id (int): id of upload, which data to return.
+        import_id (int): id of upload which data to return.
 
 
     Returns:
         citizens: all data about citizens in import_id upload'''
-    
 
     return manager.get_data(import_id)
 
@@ -82,7 +81,7 @@ def get_birthdays(import_id):
 
 
     Args:
-        import_id (int): id of upload, which borthdays
+        import_id (int): id of upload which birthdays
                          relations to return.
 
 
@@ -90,13 +89,12 @@ def get_birthdays(import_id):
         birthdays: who and how many presents will buy in each month
 
     '''
-    
 
     return manager.get_birthdays(import_id)
 
 
 @app.route('/imports/<int:import_id>/towns/stat/percentile/age',
-             methods=['GET'])
+           methods=['GET'])
 def get_percentile_age(import_id):
     '''What is the age of percentiles: [50, 75, 99] for each town.
 
@@ -106,11 +104,11 @@ def get_percentile_age(import_id):
 
 
     Returns:
-        percentile_info: for evry town info about
+        percentile_info: for every town info abosut
                          [50, 75, 99] percentiles'''
 
     return manager.get_percentile_age(import_id)
 
 
-if __name__== '__main__':
-    app.run(host="0.0.0.0", port=8080)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)

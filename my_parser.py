@@ -1,32 +1,26 @@
 from datetime import datetime
 from collections import defaultdict
+
 from flask import jsonify
+
 
 class Parser:
 
-    def get_check_functions(self):
-        '''Getting check-function for each field of database.
+    def __init__(self):
+        '''Initialize parser instance and set check-functions.'''
 
+        self.check_functions = defaultdict(self.default_check)
 
-        Returns:
-            functions (dict): field -> function dictionary
-        '''
+        self.check_functions['citizen_id'] = self.check_citizen_id
+        self.check_functions['town'] = self.check_string_value
+        self.check_functions['street'] = self.check_string_value
+        self.check_functions['building'] = self.check_string_value
+        self.check_functions['apartment'] = self.check_apartment
+        self.check_functions['name'] = self.check_name
+        self.check_functions['birth_date'] = self.check_birth_date
+        self.check_functions['gender'] = self.check_gender
 
-        functions = defaultdict(self.default_check)
-
-        functions['citizen_id'] = self.check_citizen_id
-        functions['town'] = self.check_string_value
-        functions['street'] = self.check_string_value
-        functions['building'] = self.check_string_value
-        functions['apartment'] = self.check_apartment
-        functions['name'] = self.check_name
-        functions['birth_date'] = self.check_birth_date
-        functions['gender'] = self.check_gender
-
-        return functions
-
-
-    def bad_request(self, message, code=400):
+    def process_bad_request(self, message, code=400):
         '''Building bad_request response.
 
         Args:
@@ -41,7 +35,6 @@ class Parser:
         response = jsonify({'message': message})
         response.status_code = code
         return response
-
 
     def check(self, data, action='import', relatives={}):
         '''Check correctness of data.
@@ -67,9 +60,11 @@ class Parser:
                 citizen_ids = [citizen['citizen_id'] for citizen in data]
 
                 if len(set(citizen_ids)) != len(citizen_ids):
-                    return self.bad_request('\'citizen_id\' must be unique for upload.')
+                    return self.process_bad_request(
+                        '\'citizen_id\' must be unique for upload.')
             else:
-                return self.bad_request('\'citizens\' not in json form.')
+                return self.process_bad_request('\'citizens\' ' +
+                                                'not in json form.')
         # Otherwise change representation of data
         else:
             data = [data]
@@ -77,36 +72,37 @@ class Parser:
         # If action = replace then citizen_id field cannot be in data
         if action == 'replace':
             if 'citizen_id' in data[0]:
-                return self.bad_request('\'citizen_id\' cannot be changed.')
-
+                return self.process_bad_request('\'citizen_id\' ' +
+                                                'cannot be changed.')
 
         # Check all fields for every citizen
-        check_funcs = self.get_check_functions()
         for citizen in data:
             # Number of fields must be 9 if action=imports
-            if len(citizen) > 9 or (action == 'import' and len(set(citizen)) < 9):
-                return self.bad_request('Number of fields not match' +\
-                 'the allowed number of fields')
+            if len(citizen) > 9 or (action == 'import' and
+                                    len(set(citizen)) < 9):
+                return self.process_bad_request(
+                        'Number of fields not match ' +
+                        'the allowed number of fields')
 
             for field in citizen:
                 # We'll check relatives field later
                 if field == 'relatives':
                     if type(citizen[field]) != list:
-                        return self.bad_request('\'relatives\' field must be list.')
+                        return self.process_bad_request(
+                            '\'relatives\' field must be list.')
                     continue
 
                 # Check field by it's own check-method
-                check = check_funcs[field](citizen[field])
-                if check != True:
-                    return self.bad_request(check)
+                check = self.check_functions[field](citizen[field])
+                if check is not True:
+                    return self.process_bad_request(check)
 
             if action == 'import':
                 relatives[citizen['citizen_id']] = citizen['relatives']
 
         check_relatives = self.check_relatives(relatives)
-        return True if check_relatives == True else\
-                     self.bad_request(check_relatives)
-
+        return True if check_relatives is True else\
+            self.process_bad_request(check_relatives)
 
     def check_citizen_id(self, citizen_id):
         '''Check correctness of citizen_id field.
@@ -120,13 +116,11 @@ class Parser:
             error_msg: citizen_id is not correct
         '''
 
-
         error_msg = f'\'citizen_id\' = \'{citizen_id}\' field not correct.'
-        
+
         if type(citizen_id) == int:
             return True if citizen_id >= 0 else error_msg
         return error_msg
-
 
     def check_apartment(self, apartment):
         '''Check correctness of apartment field.
@@ -142,11 +136,10 @@ class Parser:
         '''
 
         error_msg = f'\'apartment\' = \'{apartment}\' field not correct.'
-        
+
         if type(apartment) == int:
             return True if apartment >= 0 else error_msg
         return error_msg
-
 
     def check_name(self, name):
         '''Check correctness of name field.
@@ -161,13 +154,11 @@ class Parser:
             error_msg: name is not correct
         '''
 
-
         error_msg = f'\'name\' = {name} field not correct.'
-        
+
         if type(name) == str:
             return True if 257 > len(name) > 0 else error_msg
         return error_msg
-
 
     def check_birth_date(self, birth_date):
         '''Check correctness of birth_date field. Format: dd.mm.yyyy
@@ -187,9 +178,8 @@ class Parser:
         try:
             date = datetime.strptime(birth_date, '%d.%m.%Y').date()
             return True if date < datetime.today().date() else error_msg
-        except:
+        except (ValueError, TypeError) as error:
             return error_msg
-
 
     def check_gender(self, gender):
         '''Check correctness of gender field. male or female accepts.
@@ -204,9 +194,8 @@ class Parser:
             error_msg: gender is not correct
         '''
         error_msg = f'\'gender\' = \'{gender}\' field not correct.'
-        
-        return True if (gender == 'male' or gender == 'female') else error_msg
 
+        return True if (gender == 'male' or gender == 'female') else error_msg
 
     def check_relatives(self, relatives):
         '''Check correctness of relatives in hole data.
@@ -235,7 +224,6 @@ class Parser:
                     return error_msg
         return True
 
-
     def check_string_value(self, value):
         '''Check correctness of town/street/building field.
 
@@ -250,11 +238,10 @@ class Parser:
         '''
         error_msg = f'\'string_value\' = \'{value}\' field not correct.'
 
-        if type(value) != str or value =='null' or value == None:
+        if type(value) != str or value == 'null' or value is None:
             return error_msg
-        return True if any(c.isalnum() for c in value)\
-                 and len(value) <= 256 else error_msg
-
+        return True if any(c.isalnum() for c in value) and\
+                       len(value) <= 256 else error_msg
 
     def default_check(self):
         '''Stub check-function for fields, that are not supported.
@@ -264,4 +251,4 @@ class Parser:
             error_msg: field not supported'''
         error_msg = 'You have some fields that are not supported.'
 
-        return error_ms
+        return error_msg
