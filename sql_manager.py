@@ -265,7 +265,7 @@ class SQL_Manager:
             params += [[import_id, value, citizen_id]
                        for value in new_data['relatives']]
             self.cursor.executemany(rel_insert_query, params)
-            self.connection.commit()
+        self.connection.commit()
 
         # Get updated data.
         query = f'''SELECT * FROM citizens
