@@ -1,4 +1,6 @@
 # REST-API service for Yandex Backend School
+**Description**
+This is a RESTful API service for a (imaginary) shop. The service has 1 POST method, 1 PATCH method and 3 GET methods.
 
 **Installation**
 
